@@ -1436,6 +1436,7 @@
                     <div class="form-group">
                         <label for="name">Your Name</label>
                         <input type="text" id="name" name="name" class="form-control" required>
+                        <div class="validation-message" id="nameMessage"></div>
                     </div>
                     <div class="form-group" id="emailGroup">
                         <label for="email">Your Email</label>
@@ -1447,18 +1448,20 @@
                     <div class="form-group">
                         <label for="subject">Subject</label>
                         <input type="text" id="subject" name="subject" class="form-control" required>
+                        <div class="validation-message" id="subjectMessage"></div>
                     </div>
                     <div class="form-group">
                         <label for="message">Your Message</label>
                         <textarea id="message" name="message" class="form-control" required></textarea>
+                        <div class="validation-message" id="messageMessage"></div>
                     </div>
                     <div class="form-group">
                         <div class="g-recaptcha" data-sitekey="6LfLNVUrAAAAAE95knz-3keC7h5gsUdQNFO_XX_e"></div>
-                        <div id="recaptcha-error" style="color:red; display:none;"></div>
+                        <div id="recaptcha-error" class="validation-message" style="display:none;"></div>
                     </div>
                     
                     <div id="formStatus" class="form-status"></div>
-                    <button type="submit" class="submit-btn">Send Message</button>
+                    <button type="submit" class="submit-btn" id="submitBtn">Send Message</button>
                 </form>
             </div>
         </div>
@@ -2173,6 +2176,197 @@ document.querySelector('form').addEventListener('submit', function(e) {
             }
             
             // [Rest of your existing JavaScript for other functionality]
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set current year
+            document.getElementById('year').textContent = new Date().getFullYear();
+            
+            // Form elements
+            const form = document.getElementById('secureForm');
+            const formStatus = document.getElementById('formStatus');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // Real-time field validation
+            document.getElementById('name').addEventListener('input', validateName);
+            document.getElementById('email').addEventListener('input', validateEmail);
+            document.getElementById('subject').addEventListener('input', validateSubject);
+            document.getElementById('message').addEventListener('input', validateMessage);
+            
+            function validateName() {
+                const name = document.getElementById('name').value.trim();
+                const messageEl = document.getElementById('nameMessage');
+                
+                if (!name) {
+                    messageEl.textContent = 'Name is required';
+                    messageEl.style.display = 'block';
+                    return false;
+                }
+                
+                messageEl.style.display = 'none';
+                return true;
+            }
+            
+            function validateEmail() {
+                const email = document.getElementById('email').value.trim();
+                const emailGroup = document.getElementById('emailGroup');
+                const validIcon = document.getElementById('validIcon');
+                const invalidIcon = document.getElementById('invalidIcon');
+                const emailMessage = document.getElementById('emailMessage');
+                
+                if (!email) {
+                    emailGroup.classList.remove('valid', 'invalid');
+                    emailMessage.textContent = '';
+                    emailMessage.style.display = 'none';
+                    return false;
+                }
+                
+                const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+                const isValid = re.test(String(email).toLowerCase());
+                
+                if (isValid) {
+                    emailGroup.classList.add('valid');
+                    emailGroup.classList.remove('invalid');
+                    emailMessage.textContent = 'Email is valid!';
+                    emailMessage.style.display = 'block';
+                    return true;
+                } else {
+                    emailGroup.classList.add('invalid');
+                    emailGroup.classList.remove('valid');
+                    emailMessage.textContent = 'Invalid email format. Example: name@example.com';
+                    emailMessage.style.display = 'block';
+                    return false;
+                }
+            }
+            
+            function validateSubject() {
+                const subject = document.getElementById('subject').value.trim();
+                const messageEl = document.getElementById('subjectMessage');
+                
+                if (!subject) {
+                    messageEl.textContent = 'Subject is required';
+                    messageEl.style.display = 'block';
+                    return false;
+                }
+                
+                messageEl.style.display = 'none';
+                return true;
+            }
+            
+            function validateMessage() {
+                const message = document.getElementById('message').value.trim();
+                const messageEl = document.getElementById('messageMessage');
+                
+                if (!message) {
+                    messageEl.textContent = 'Message is required';
+                    messageEl.style.display = 'block';
+                    return false;
+                }
+                
+                messageEl.style.display = 'none';
+                return true;
+            }
+            
+            function validateRecaptcha() {
+                const recaptchaResponse = grecaptcha.getResponse();
+                const recaptchaError = document.getElementById('recaptcha-error');
+                
+                if (!recaptchaResponse) {
+                    recaptchaError.textContent = 'Please complete the reCAPTCHA verification';
+                    recaptchaError.style.display = 'block';
+                    return false;
+                }
+                
+                recaptchaError.style.display = 'none';
+                return true;
+            }
+            
+            // Form submission handler
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Validate all fields
+                const isNameValid = validateName();
+                const isEmailValid = validateEmail();
+                const isSubjectValid = validateSubject();
+                const isMessageValid = validateMessage();
+                const isRecaptchaValid = validateRecaptcha();
+                
+                if (!isNameValid || !isEmailValid || !isSubjectValid || !isMessageValid || !isRecaptchaValid) {
+                    formStatus.className = 'form-status error';
+                    formStatus.textContent = 'Please fill all required fields correctly and complete the reCAPTCHA';
+                    formStatus.style.display = 'block';
+                    return;
+                }
+                
+                // Disable submit button and show loading state
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Sending <span class="loading"></span>';
+                
+                // Clear previous status
+                formStatus.className = 'form-status';
+                formStatus.textContent = '';
+                formStatus.style.display = 'none';
+                
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        // Show success popup
+                        showPopup();
+                        form.reset();
+                        // Reset reCAPTCHA
+                        grecaptcha.reset();
+                    } else {
+                        const errorData = await response.json();
+                        showError(errorData.error || 'An error occurred while sending your message.');
+                    }
+                } catch (error) {
+                    showError('Network error. Please try again.');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Send Message';
+                }
+            });
+            
+            function showError(message) {
+                formStatus.className = 'form-status error';
+                formStatus.textContent = message;
+                formStatus.style.display = 'block';
+                
+                // Scroll to the error message
+                formStatus.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            
+            function showPopup() {
+                const popup = document.getElementById('popupOverlay');
+                popup.classList.add('active');
+                
+                // Close popup when button clicked
+                document.getElementById('popupClose').addEventListener('click', function() {
+                    popup.classList.remove('active');
+                });
+                
+                // Close popup when clicking outside
+                popup.addEventListener('click', function(e) {
+                    if (e.target === popup) {
+                        popup.classList.remove('active');
+                    }
+                });
+                
+                // Auto close after 5 seconds
+                setTimeout(() => {
+                    popup.classList.remove('active');
+                }, 5000);
+            }
+            
+            // Your existing JavaScript for other functionality remains the same
+            // ...
         });
     </script>
 </body>
